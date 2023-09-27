@@ -23,7 +23,7 @@ import java.util.*;
  * @created 21/09/2023 - 21:43
  * @project spring-boot-jpa-paging-sorting
  */
-@CrossOrigin(origins = "http://localhost:4200")
+@CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/api")
 public class TutorialController {
