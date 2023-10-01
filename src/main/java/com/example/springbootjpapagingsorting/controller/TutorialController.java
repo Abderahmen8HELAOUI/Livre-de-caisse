@@ -164,23 +164,52 @@ public class TutorialController {
             String formattedDateTime = currentLocalDateTime.format(dateTimeFormatter);
             Tutorial _tutorial = tutorialRepository.save(new Tutorial("OperationDate is : " + formattedDateTime,
                     tutorial.getDescription(),
+
                     tutorial.getRecipeToday(),
                     tutorial.getBalancePreviousMonth(),
+                    tutorial.getRecipeToday() + tutorial.getBalancePreviousMonth(),
 
                     tutorial.getOperationTreasuryAnterior(),
                     tutorial.getOperationTreasuryToday(),
+                    tutorial.getOperationTreasuryAnterior() + tutorial.getOperationTreasuryToday(),
 
                     tutorial.getOperationPreviousRegulation(),
                     tutorial.getOperationRegulationToday(),
 
+                    tutorial.getOperationPreviousRegulation() +  tutorial.getOperationRegulationToday(),
+
+                    tutorial.getOperationTreasuryAnterior() + tutorial.getOperationTreasuryToday() +
+                            tutorial.getOperationPreviousRegulation() +  tutorial.getOperationRegulationToday(),
+
+                    (tutorial.getRecipeToday() + tutorial.getBalancePreviousMonth())-
+                            (tutorial.getOperationTreasuryAnterior() + tutorial.getOperationTreasuryToday() +
+                            tutorial.getOperationPreviousRegulation() +  tutorial.getOperationRegulationToday()),
+
                     tutorial.getPostCurrentAccount(),
                     tutorial.getCreditExpected(),
-
+                    tutorial.getRateExpected(),
+                    (tutorial.getPostCurrentAccount()+tutorial.getCreditExpected())-
                     tutorial.getRateExpected(),
 
                     tutorial.getOtherValues(),
                     tutorial.getStatesRepartition(),
+
+                    ((tutorial.getRecipeToday() + tutorial.getBalancePreviousMonth())-
+                            (tutorial.getOperationTreasuryAnterior() + tutorial.getOperationTreasuryToday() +
+                                    tutorial.getOperationPreviousRegulation() +  tutorial.getOperationRegulationToday()))-
+                            (tutorial.getOtherValues()+tutorial.getStatesRepartition())-
+                            ((tutorial.getPostCurrentAccount()+tutorial.getCreditExpected())-
+                                    tutorial.getRateExpected()),
+
                     tutorial.getMoneySpecies(),
+
+                    (((tutorial.getRecipeToday() + tutorial.getBalancePreviousMonth())-
+                            (tutorial.getOperationTreasuryAnterior() + tutorial.getOperationTreasuryToday() +
+                                    tutorial.getOperationPreviousRegulation() +  tutorial.getOperationRegulationToday()))-
+                            (tutorial.getOtherValues()+tutorial.getStatesRepartition())-
+                            ((tutorial.getPostCurrentAccount()+tutorial.getCreditExpected())-
+                                    tutorial.getRateExpected()))-tutorial.getMoneySpecies(),
+
                     tutorial.isPublished()));
             return new ResponseEntity<>(_tutorial, HttpStatus.CREATED);
         } catch (Exception e) {
@@ -198,7 +227,7 @@ public class TutorialController {
             _tutorial.setDescription(tutorial.getDescription());
             _tutorial.setRecipeToday(tutorial.getRecipeToday());
             _tutorial.setBalancePreviousMonth(tutorial.getBalancePreviousMonth());
-
+            _tutorial.setTotalRecipeToday(tutorial.getTotalRecipeToday());
             _tutorial.setOperationTreasuryAnterior(tutorial.getOperationTreasuryAnterior());
             _tutorial.setOperationTreasuryToday(tutorial.getOperationTreasuryToday());
 
