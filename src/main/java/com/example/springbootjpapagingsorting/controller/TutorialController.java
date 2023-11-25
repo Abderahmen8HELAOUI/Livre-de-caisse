@@ -1,7 +1,10 @@
 package com.example.springbootjpapagingsorting.controller;
 
+import com.example.springbootjpapagingsorting.model.DailyAccountingRequest;
+import com.example.springbootjpapagingsorting.model.DailyAccountingService;
 import com.example.springbootjpapagingsorting.model.Tutorial;
 import com.example.springbootjpapagingsorting.repository.TutorialRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -26,13 +29,14 @@ import java.util.*;
 @CrossOrigin(origins = "http://localhost:4200")
 @RestController
 @RequestMapping("/api")
+@RequiredArgsConstructor
 public class TutorialController {
 
-    @Autowired
-    TutorialRepository tutorialRepository;
+    private final TutorialRepository tutorialRepository;
 
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
+    private final JdbcTemplate jdbcTemplate;
+
+    private final DailyAccountingService dailyAccountingService;
 
     private Sort.Direction getSortDirection(String direction) {
         if (direction.equals("asc")) {
@@ -119,31 +123,7 @@ public class TutorialController {
         }
     }
 
-    @GetMapping("/tutorials/published")
-    public ResponseEntity<Map<String, Object>> findByPublished(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "3") int size) {
-
-        try {
-            List<Tutorial> tutorials = new ArrayList<Tutorial>();
-            Pageable paging = PageRequest.of(page, size);
-
-            Page<Tutorial> pageTuts = tutorialRepository.findByPublished(true, paging);
-            tutorials = pageTuts.getContent();
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("tutorials", tutorials);
-            response.put("currentPage", pageTuts.getNumber());
-            response.put("totalItems", pageTuts.getTotalElements());
-            response.put("totalPages", pageTuts.getTotalPages());
-
-            return new ResponseEntity<>(response, HttpStatus.OK);
-        } catch (Exception e) {
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    @GetMapping("/tutorials/{id}")
+   @GetMapping("/tutorials/{id}")
     public ResponseEntity<Tutorial> getTutorialById(@PathVariable("id") long id) {
         Optional<Tutorial> tutorialData = tutorialRepository.findById(id);
 
@@ -155,66 +135,12 @@ public class TutorialController {
     }
 
     @PostMapping("/tutorials")
-    public ResponseEntity<Tutorial> createTutorial(@RequestBody Tutorial tutorial) {
-        try {
-            LocalDateTime currentLocalDateTime = LocalDateTime.now();
+    public ResponseEntity<?> createTutorial(@RequestBody DailyAccountingRequest dailyAccountingRequest) {
 
-            DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
+        dailyAccountingService.createDailyAccounting(dailyAccountingRequest);
 
-            String formattedDateTime = currentLocalDateTime.format(dateTimeFormatter);
-            Tutorial _tutorial = tutorialRepository.save(new Tutorial("OperationDate is : " + formattedDateTime,
-                    tutorial.getDescription(),
+            return ResponseEntity.accepted().build();
 
-                    tutorial.getRecipeToday(),
-                    tutorial.getBalancePreviousMonth(),
-                    tutorial.getRecipeToday() + tutorial.getBalancePreviousMonth(),
-
-                    tutorial.getOperationTreasuryAnterior(),
-                    tutorial.getOperationTreasuryToday(),
-                    tutorial.getOperationTreasuryAnterior() + tutorial.getOperationTreasuryToday(),
-
-                    tutorial.getOperationPreviousRegulation(),
-                    tutorial.getOperationRegulationToday(),
-
-                    tutorial.getOperationPreviousRegulation() +  tutorial.getOperationRegulationToday(),
-
-                    tutorial.getOperationTreasuryAnterior() + tutorial.getOperationTreasuryToday() +
-                            tutorial.getOperationPreviousRegulation() +  tutorial.getOperationRegulationToday(),
-
-                    (tutorial.getRecipeToday() + tutorial.getBalancePreviousMonth())-
-                            (tutorial.getOperationTreasuryAnterior() + tutorial.getOperationTreasuryToday() +
-                            tutorial.getOperationPreviousRegulation() +  tutorial.getOperationRegulationToday()),
-
-                    tutorial.getPostCurrentAccount(),
-                    tutorial.getCreditExpected(),
-                    tutorial.getRateExpected(),
-                    (tutorial.getPostCurrentAccount()+tutorial.getCreditExpected())-
-                    tutorial.getRateExpected(),
-
-                    tutorial.getOtherValues(),
-                    tutorial.getStatesRepartition(),
-
-                    ((tutorial.getRecipeToday() + tutorial.getBalancePreviousMonth())-
-                            (tutorial.getOperationTreasuryAnterior() + tutorial.getOperationTreasuryToday() +
-                                    tutorial.getOperationPreviousRegulation() +  tutorial.getOperationRegulationToday()))-
-                            (tutorial.getOtherValues()+tutorial.getStatesRepartition())-
-                            ((tutorial.getPostCurrentAccount()+tutorial.getCreditExpected())-
-                                    tutorial.getRateExpected()),
-
-                    tutorial.getMoneySpecies(),
-
-                    (((tutorial.getRecipeToday() + tutorial.getBalancePreviousMonth())-
-                            (tutorial.getOperationTreasuryAnterior() + tutorial.getOperationTreasuryToday() +
-                                    tutorial.getOperationPreviousRegulation() +  tutorial.getOperationRegulationToday()))-
-                            (tutorial.getOtherValues()+tutorial.getStatesRepartition())-
-                            ((tutorial.getPostCurrentAccount()+tutorial.getCreditExpected())-
-                                    tutorial.getRateExpected()))-tutorial.getMoneySpecies(),
-
-                    tutorial.isPublished()));
-            return new ResponseEntity<>(_tutorial, HttpStatus.CREATED);
-        } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
     }
 
     @PutMapping("/tutorials/{id}")
@@ -223,11 +149,12 @@ public class TutorialController {
 
         if (tutorialData.isPresent()) {
             Tutorial _tutorial = tutorialData.get();
+
             _tutorial.setTitle(tutorial.getTitle());
-            _tutorial.setDescription(tutorial.getDescription());
+
             _tutorial.setRecipeToday(tutorial.getRecipeToday());
             _tutorial.setBalancePreviousMonth(tutorial.getBalancePreviousMonth());
-            _tutorial.setTotalRecipeToday(tutorial.getTotalRecipeToday());
+
             _tutorial.setOperationTreasuryAnterior(tutorial.getOperationTreasuryAnterior());
             _tutorial.setOperationTreasuryToday(tutorial.getOperationTreasuryToday());
 
@@ -243,7 +170,6 @@ public class TutorialController {
             _tutorial.setStatesRepartition(tutorial.getStatesRepartition());
             _tutorial.setMoneySpecies(tutorial.getMoneySpecies());
 
-            _tutorial.setPublished(tutorial.isPublished());
             return new ResponseEntity<>(tutorialRepository.save(_tutorial), HttpStatus.OK);
         } else {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
@@ -271,14 +197,39 @@ public class TutorialController {
 
     }
 
+    @GetMapping("/tutorials/balancePreviousMonth")
+    public double getBalancePreviousMonth(){
+        return tutorialRepository.balancePreviousMonth();
+    }
 
-    public double getTotalRecipe() {
-        return tutorialRepository.totalRecipe();
+    @GetMapping("/tutorials/postalCurrentAccount")
+    public double getPostalCurrentAccount(){
+        return tutorialRepository.postalCurrentAccount();
+    }
+
+    @GetMapping("/tutorials/creditExpected")
+    public double getCreditExpected(){
+        return tutorialRepository.creditExpected();
+    }
+
+    @GetMapping("/tutorials/expectedFlow")
+    public double getExpectedFlow(){
+        return tutorialRepository.expectedFlow();
+    }
+
+    @GetMapping("/tutorials/otherValues")
+    public double getOtherValues(){
+        return tutorialRepository.otherValues();
+    }
+
+    @GetMapping("/tutorials/statesRepartition")
+    public double getStatesRepartition(){
+        return tutorialRepository.statesRepartition();
     }
 
     @GetMapping("/tutorials/totalRecipe")
-    public String getTotalRecipeString() {
-        return String.format("TND %,.3f", getTotalRecipe());
+    public double getTotalRecipeDouble() {
+        return tutorialRepository.totalRecipe();
     }
 
     @GetMapping("/tutorials/recette-total")
@@ -290,6 +241,13 @@ public class TutorialController {
         return jdbcTemplate.queryForObject(sql, String.class);
     }
 
+    // --------------------------------
+
+    @GetMapping("/tutorials/OperationsTreasuryTotalLastDay")
+    public double getTotalTreasuryOperationsLastDay(){
+        return tutorialRepository.totalTreasuryOperationsLastDay();
+    }
+
     @GetMapping("/tutorials/OperationsTreasury-total")
     public String getOperationsTreasuryTotal(@RequestParam("date") String date) {
         String sql = "SELECT SUM(t.operation_treasury_anterior + t.operation_treasury_today) AS Opération_Tésor_total\n" +
@@ -298,6 +256,7 @@ public class TutorialController {
 
         return jdbcTemplate.queryForObject(sql, String.class);
     }
+    //----------------------------------------------
 
     @GetMapping("/tutorials/OperationsRegulation-total")
     public String getOperationsRegulationTotal(@RequestParam("date") String date) {
@@ -307,6 +266,13 @@ public class TutorialController {
 
         return jdbcTemplate.queryForObject(sql, String.class);
     }
+
+    @GetMapping("/tutorials/OperationsRegulationsTotalDoubleLastRow")
+    public double getTotalOperationsRegulationsLastRow(){
+        return tutorialRepository.totalOperationsRegulationsLastDay();
+    };
+
+    //-------------------------------------
 
     @GetMapping("/tutorials/totalExpenses")
     public String getTotalExpenses(@RequestParam("date") String date) {
@@ -319,6 +285,7 @@ public class TutorialController {
         return jdbcTemplate.queryForObject(sql, String.class);
     }
 
+//----------------------------------
     @GetMapping("/tutorials/dalyAccountBalance")
     public String getDalyAccountBalance(@RequestParam("date") String date) {
         String sql = "SELECT ((t.recipe_today+t.balance_previous_month)-  (t.operation_treasury_anterior + t.operation_treasury_today +\n" +
@@ -330,6 +297,7 @@ public class TutorialController {
         return jdbcTemplate.queryForObject(sql, String.class);
     }
 
+//------------------------------
     @GetMapping("/tutorials/finalPostalAccount")
     public String getFinalPostalAccount(@RequestParam("date") String date) {
         String sql = "SELECT ((t.postal_current_account + t.credit_expected) - t.expected_flow)\n" +
@@ -340,11 +308,12 @@ public class TutorialController {
         return jdbcTemplate.queryForObject(sql, String.class);
     }
 
+//------------------------------------------------
     @GetMapping("/tutorials/totalCash")
     public String getTotalCash(@RequestParam("date") String date) {
         String sql = "SELECT ((t.recipe_today+t.balance_previous_month)-  (t.operation_treasury_anterior + t.operation_treasury_today +\n" +
                 "                t.operation_regulation_prior + t.operation_regulation_today)) -\n" +
-                "       (((t.postal_current_account + t.credit_expected) - t.expected_flow)+ t.states_repartition)\n" +
+                "       (((t.postal_current_account + t.credit_expected) - t.expected_flow)+ t.other_values+t.states_repartition)\n" +
                 "                AS Dépenses_total\n" +
                 "                FROM tutorials t\n" +
                 "                where title like '%" + date + "%'";
@@ -352,11 +321,12 @@ public class TutorialController {
         return jdbcTemplate.queryForObject(sql, String.class);
     }
 
+//-------------------------------------------
     @GetMapping("/tutorials/moneyInCoinsInCash")
     public String getMoneyInCoinsInCash(@RequestParam("date") String date) {
         String sql = "SELECT (((t.recipe_today+t.balance_previous_month)-  (t.operation_treasury_anterior + t.operation_treasury_today +\n" +
                 "                t.operation_regulation_prior + t.operation_regulation_today)) -\n" +
-                "       (((t.postal_current_account + t.credit_expected) - t.expected_flow)+ t.states_repartition))-t.money_species\n" +
+                "       (((t.postal_current_account + t.credit_expected) - t.expected_flow)+ t.other_values+t.states_repartition))-t.money_species\n" +
                 "                AS Dépenses_total\n" +
                 "                FROM tutorials t\n" +
                 "                where title like '%" + date + "%'";
