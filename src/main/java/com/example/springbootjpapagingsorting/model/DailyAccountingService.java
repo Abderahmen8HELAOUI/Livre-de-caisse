@@ -20,7 +20,7 @@ public class DailyAccountingService {
 
         String formattedDateTime = currentLocalDateTime.format(dateTimeFormatter);
 
-        var dailyAccounting = Tutorial.builder()
+        Tutorial dailyAccounting = Tutorial.builder()
                 .title("OperationDate is : " + formattedDateTime)
                 .recipeToday(dailyAccountingRequest.getRecipeToday())
                 .balancePreviousMonth(dailyAccountingRequest.getBalancePreviousMonth())
